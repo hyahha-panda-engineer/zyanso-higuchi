@@ -224,9 +224,9 @@ function renderHistoryAndChart() {
     container.innerHTML = html;
 
     let totalArr = Object.entries(totals).map(([name, score]) => {
-        let yen = score * 20; 
-        return `${name}: <b>${score > 0 ? '+' : ''}${score}</b> (${yen >= 0 ? '+' : ''}${yen}円)`;
-    });
+    let yen = score * 50; 
+    return `${name}: <b>${score > 0 ? '+' : ''}${score}</b> (${yen >= 0 ? '+' : ''}${yen}円)`;
+});
     document.getElementById("total-text").innerHTML = totalArr.join("<br>") || "データなし";
 
     updateChart(appState.dayRecords.map((_, idx) => `第${idx+1}戦`), cumulativeScores);
