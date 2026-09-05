@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>麻雀点数記録</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<!-- 認証画面 -->
+<div class="container" id="auth-screen">
+    <h2>🔐 認証</h2>
+    <div id="auth-error" class="error-msg"></div>
+    <label>合言葉を入力</label>
+    <input type="password" id="password-input" placeholder="パスワード">
+    <button onclick="login()">ログイン</button>
+</div>
+
+<!-- メイン画面 -->
+<div class="container hidden" id="main-screen">
+    <h2>🀄 麻雀スコア記録</h2>
+    
+    <div class="section">
+        <label>日付選択</label>
+        <div class="date-row">
+            <input type="date" id="target-date">
+            <button onclick="fetchData()">🔄 読み込む</button>
+        </div>
+        <label style="margin-top: 8px;">過去の対局日から選択</label>
+        <select id="past-dates-select" onchange="selectPastDate()">
+            <option value="">過去の対局日を選択...</option>
+        </select>
+    </div>
+
+    <div id="editing-banner" class="editing-banner hidden">
+        ✏️ 編集モード中（第<span id="editing-target-num"></span>戦を修正中）
+        <button class="btn-cancel" onclick="cancelEdit()">編集をやめる</button>
+    </div>
+
+    <div class="section">
+        <label>ルール</label>
+        <select id="game-mode" onchange="renderPlayerInputs()">
+            <option value="4">4人打ち (ヨンマ)</option>
+            <option value="3">3人打ち (サンマ)</option>
+        </select>
+    </div>
+
+    <div class="section">
+        <label>対局者とスコア（1箇所空欄にして計算ボタンで自動入力）</label>
+        <div id="players-container"></div>
+    </div>
+
+    <button class="btn-calc" onclick="autoCalculateBlank()">🧮 空白を自動計算する</button>
+
+    <button id="submit-btn" onclick="submitScore()">この半チャンを送信する</button>
+
+    <hr class="divider">
+
+    <h3>📈 本日のポイント推移グラフ</h3>
+    <div class="chart-container">
+        <canvas id="scoreChart"></canvas>
+    </div>
+
+    <div class="total-summary-box" style="margin-bottom: 20px;">
+        <b>📊 本日のトータル成績:</b><br>
+        <span id="total-text" class="empty-text">データなし</span>
+    </div>
+
+    <h3>📅 本日の対局履歴 (<span id="history-count">0</span>戦)</h3>
+    <div id="history-container">
+        <span class="empty-text">データなし</span>
+    </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

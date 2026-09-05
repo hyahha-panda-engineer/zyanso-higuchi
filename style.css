@@ -1,0 +1,77 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #f4f6f8;
+    color: #333;
+    margin: 0;
+    padding: 16px;
+}
+.container {
+    max-width: 480px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+h2, h3 { text-align: center; margin-top: 0; color: #2c3e50; }
+.section { margin-bottom: 16px; }
+label { display: block; font-weight: bold; margin-bottom: 4px; font-size: 13px; color: #555; }
+input, select {
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
+    margin-bottom: 8px;
+    background: #fff;
+}
+.date-row { display: flex; gap: 8px; align-items: center; }
+.date-row input { flex: 2; margin-bottom: 0; }
+.date-row button { flex: 1; margin-bottom: 0; padding: 10px; font-size: 13px; background-color: #3498db; }
+
+.player-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+.player-row .name-wrapper { flex: 2; }
+.player-row input[type="number"] { flex: 1; margin-bottom: 0; }
+
+.total-summary-box {
+    background: #ebf5fb;
+    border: 1px solid #85c1e9;
+    padding: 12px;
+    border-radius: 6px;
+    margin-top: 14px;
+    font-size: 14px;
+}
+.total-summary-box b { color: #2980b9; }
+
+.chart-container { position: relative; height: 240px; width: 100%; margin: 14px 0; }
+
+button {
+    width: 100%; background-color: #27ae60; color: white; border: none;
+    padding: 12px; font-size: 15px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-bottom: 8px;
+}
+button:active { background-color: #219653; }
+.btn-calc { background-color: #2980b9; }
+.btn-cancel { background-color: #7f8c8d; display: inline-block; padding: 4px 8px; font-size: 11px; margin-top: 4px; }
+
+.hidden { display: none !important; }
+.error-msg { color: #e74c3c; font-size: 14px; text-align: center; margin-bottom: 10px; }
+.divider { margin: 20px 0; border: none; border-top: 1px solid #eee; }
+.empty-text { color: #888; font-size: 13px; }
+
+.history-card {
+    background: #fdfefe; border: 1px solid #d5dbdb; border-radius: 6px;
+    padding: 10px; margin-bottom: 8px; font-size: 13px;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.history-info { flex: 1; }
+.history-actions { display: flex; gap: 4px; }
+.history-actions button { padding: 6px 10px; font-size: 12px; margin-bottom: 0; width: auto; }
+.btn-edit { background-color: #f39c12; }
+.btn-delete { background-color: #e74c3c; }
+
+.editing-banner {
+    background: #fef9e7; border: 1px solid #f1c40f; padding: 8px; border-radius: 6px;
+    margin-bottom: 12px; font-size: 13px; color: #b7950b; font-weight: bold; text-align: center;
+}
