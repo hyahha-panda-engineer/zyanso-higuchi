@@ -170,7 +170,7 @@ function renderSummaryView() {
                 <td>${winRate}</td>
                 <td>${avgRank}</td>
                 <td class="${scoreClass}">${s.totalScore > 0 ? '+' : ''}${s.totalScore.toFixed(1)}</td>
-                <td class="${scoreClass}">${yen >= 0 ? '+' : ''}${yen.toLocaleString()}円</td>
+                <td class="${scoreClass}">${yen >= 0 ? '+' : ''}${yen.toLocaleString()}</td>
             </tr>
         `;
     });
@@ -368,7 +368,7 @@ function renderHistoryAndChart() {
 
     let totalArr = Object.entries(totals).map(([name, score]) => {
         let yen = score * 50; 
-        return `${name}: <b>${score > 0 ? '+' : ''}${score}</b> (${yen >= 0 ? '+' : ''}${yen}円)`;
+        return `${name}: <b>${score > 0 ? '+' : ''}${score}</b> (${yen >= 0 ? '+' : ''}${yen})`;
     });
     document.getElementById("total-text").innerHTML = totalArr.join("<br>") || "データなし";
 
