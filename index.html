@@ -20,57 +20,98 @@
 
 <!-- メイン画面 -->
 <div class="container hidden" id="main-screen">
-    <h2>🀄 麻雀スコア記録</h2>
-    
-    <div class="section">
-        <label>日付選択</label>
-        <div class="date-row">
-            <input type="date" id="target-date">
-            <button onclick="fetchData()">🔄 読み込む</button>
+    <!-- ナビゲーションタブ -->
+    <div class="nav-tabs">
+        <button class="tab-btn active" id="tab-daily" onclick="switchTab('daily')">📝 日別記録</button>
+        <button class="tab-btn" id="tab-summary" onclick="switchTab('summary')">🏆 通算集計</button>
+    </div>
+
+    <!-- 1. 日別記録ビュー -->
+    <div id="view-daily">
+        <div class="section">
+            <label>日付選択</label>
+            <div class="date-row">
+                <input type="date" id="target-date">
+                <button onclick="fetchData()">🔄 読み込む</button>
+            </div>
+            <label style="margin-top: 8px;">過去の対局日から選択</label>
+            <select id="past-dates-select" onchange="selectPastDate()">
+                <option value="">過去の対局日を選択...</option>
+            </select>
         </div>
-        <label style="margin-top: 8px;">過去の対局日から選択</label>
-        <select id="past-dates-select" onchange="selectPastDate()">
-            <option value="">過去の対局日を選択...</option>
-        </select>
+
+        <div id="editing-banner" class="editing-banner hidden">
+            ✏️ 編集モード中（第<span id="editing-target-num"></span>戦を修正中）
+            <button class="btn-cancel" onclick="cancelEdit()">編集をやめる</button>
+        </div>
+
+        <div class="section">
+            <label>ルール</label>
+            <select id="game-mode" onchange="renderPlayerInputs()">
+                <option value="4">4人打ち (ヨンマ)</option>
+                <option value="3">3人打ち (サンマ)</option>
+            </select>
+        </div>
+
+        <div class="section">
+            <label>対局者とスコア（1箇所空欄にして計算ボタンで自動入力）</label>
+            <div id="players-container"></div>
+        </div>
+
+        <button class="btn-calc" onclick="autoCalculateBlank()">🧮 空白を自動計算する</button>
+        <button id="submit-btn" onclick="submitScore()">この半チャンを送信する</button>
+
+        <hr class="divider">
+
+        <h3>📈 本日のポイント推移グラフ</h3>
+        <div class="chart-container">
+            <canvas id="scoreChart"></canvas>
+        </div>
+
+        <div class="total-summary-box" style="margin-bottom: 20px;">
+            <b>📊 本日のトータル成績:</b><br>
+            <span id="total-text" class="empty-text">データなし</span>
+        </div>
+
+        <h3>📅 本日の対局履歴 (<span id="history-count">0</span>戦)</h3>
+        <div id="history-container">
+            <span class="empty-text">データなし</span>
+        </div>
     </div>
 
-    <div id="editing-banner" class="editing-banner hidden">
-        ✏️ 編集モード中（第<span id="editing-target-num"></span>戦を修正中）
-        <button class="btn-cancel" onclick="cancelEdit()">編集をやめる</button>
-    </div>
+    <!-- 2. 通算集計ビュー -->
+    <div id="view-summary" class="hidden">
+        <div class="section">
+            <label>集計期間を選択</label>
+            <select id="summary-period-select" onchange="renderSummaryView()">
+                <option value="all">全期間通算</option>
+            </select>
+        </div>
 
-    <div class="section">
-        <label>ルール</label>
-        <select id="game-mode" onchange="renderPlayerInputs()">
-            <option value="4">4人打ち (ヨンマ)</option>
-            <option value="3">3人打ち (サンマ)</option>
-        </select>
-    </div>
+        <h3>🏆 メンバー別通算成績</h3>
+        <div class="table-scroll">
+            <table class="summary-table">
+                <thead>
+                    <tr>
+                        <th>順位</th>
+                        <th>名前</th>
+                        <th>対局</th>
+                        <th>勝率</th>
+                        <th>平均着順</th>
+                        <th>通算P</th>
+                        <th>収支</th>
+                    </tr>
+                </thead>
+                <tbody id="summary-table-body">
+                    <tr><td colspan="7" class="empty-text">読み込み中...</td></tr>
+                </tbody>
+            </table>
+        </div>
 
-    <div class="section">
-        <label>対局者とスコア（1箇所空欄にして計算ボタンで自動入力）</label>
-        <div id="players-container"></div>
-    </div>
-
-    <button class="btn-calc" onclick="autoCalculateBlank()">🧮 空白を自動計算する</button>
-
-    <button id="submit-btn" onclick="submitScore()">この半チャンを送信する</button>
-
-    <hr class="divider">
-
-    <h3>📈 本日のポイント推移グラフ</h3>
-    <div class="chart-container">
-        <canvas id="scoreChart"></canvas>
-    </div>
-
-    <div class="total-summary-box" style="margin-bottom: 20px;">
-        <b>📊 本日のトータル成績:</b><br>
-        <span id="total-text" class="empty-text">データなし</span>
-    </div>
-
-    <h3>📅 本日の対局履歴 (<span id="history-count">0</span>戦)</h3>
-    <div id="history-container">
-        <span class="empty-text">データなし</span>
+        <h3 style="margin-top: 24px;">📉 通算ポイント推移グラフ</h3>
+        <div class="chart-container">
+            <canvas id="summaryChart"></canvas>
+        </div>
     </div>
 
 </div>
