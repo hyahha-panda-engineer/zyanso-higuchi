@@ -1,4 +1,3 @@
-// 👇 ご自身のGASウェブアプリURLに書き換えてください
 const GAS_URL = "https://script.google.com/macros/s/AKfycbymzundW-n2WlYGyZWAOK19lFLA8-8ssrMu_HG1tk7IXk-OJnH0GYlM0Vcx2QbGjl2q/exec";
 
 let appState = {
@@ -116,8 +115,8 @@ function renderSummaryView() {
         filteredRecords = appState.allRecords.filter(r => r.year === parseInt(period));
     }
 
-    let stats = {}; // { メンバー名: { games, totalScore, ranks: [1位回数, 2位回数...] } }
-    let cumulativeTimeline = {}; // グラフ用推移
+    let stats = {}; 
+    let cumulativeTimeline = {}; 
 
     filteredRecords.forEach(rec => {
         let playersInGame = [];
@@ -126,7 +125,6 @@ function renderSummaryView() {
                 playersInGame.push({ name: rec.data[i], score: parseFloat(rec.data[i+1]) || 0 });
             }
         }
-        // スコア順に降順ソートして着順を確定
         playersInGame.sort((a, b) => b.score - a.score);
 
         playersInGame.forEach((p, rankIndex) => {
@@ -140,7 +138,6 @@ function renderSummaryView() {
             if (rankIndex === 0) stats[p.name].topCount++;
         });
 
-        // グラフ用累計の更新
         Object.keys(stats).forEach(name => {
             let pInGame = playersInGame.find(p => p.name === name);
             let prev = cumulativeTimeline[name].length > 0 ? cumulativeTimeline[name][cumulativeTimeline[name].length - 1] : 0;
@@ -148,10 +145,8 @@ function renderSummaryView() {
         });
     });
 
-    // 成績順（通算Pの降順）にソート
     let sortedStats = Object.entries(stats).sort((a, b) => b[1].totalScore - a[1].totalScore);
 
-    // テーブル表示構築
     let tbodyHtml = "";
     sortedStats.forEach(([name, s], idx) => {
         let winRate = ((s.topCount / s.games) * 100).toFixed(1) + "%";
@@ -159,7 +154,7 @@ function renderSummaryView() {
         let rankSum = s.ranks.reduce((sum, count, rIdx) => sum + count * (rIdx + 1), 0);
         let avgRank = (rankSum / s.games).toFixed(2);
         
-        let yen = s.totalScore * 50; // 点5換算
+        let yen = s.totalScore * 50; 
         let scoreClass = s.totalScore >= 0 ? 'pos' : 'neg';
 
         tbodyHtml += `
@@ -170,18 +165,17 @@ function renderSummaryView() {
                 <td>${winRate}</td>
                 <td>${avgRank}</td>
                 <td class="${scoreClass}">${s.totalScore > 0 ? '+' : ''}${s.totalScore.toFixed(1)}</td>
-                <td class="${scoreClass}">${yen >= 0 ? '+' : ''}${yen.toLocaleString()}</td>
+                <td class="${scoreClass}">${yen >= 0 ? '+' : ''}${yen.toLocaleString()}円</td>
             </tr>
         `;
     });
 
     document.getElementById("summary-table-body").innerHTML = tbodyHtml || `<tr><td colspan="7" class="empty-text">データなし</td></tr>`;
 
-    // 通算グラフ描画
     updateSummaryChart(filteredRecords.map((_, idx) => `第${idx+1}局`), cumulativeTimeline);
 }
 
-// 通算グラフの描画
+// 通算グラフの描画（補助線を白い半透明に修正）
 function updateSummaryChart(labels, cumulativeTimeline) {
     const ctx = document.getElementById('summaryChart').getContext('2d');
     const colorPalette = ['#ff8c00', '#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#1abc9c', '#f1c40f'];
@@ -204,15 +198,20 @@ function updateSummaryChart(labels, cumulativeTimeline) {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                x: { grid: { color: '#2a2b2e' }, ticks: { color: '#b0b3b8' } },
-                y: { grid: { color: '#2a2b2e' }, ticks: { color: '#b0b3b8' } }
+                x: { 
+                    grid: { color: 'rgba(255, 255, 255, 0.25)' }, 
+                    ticks: { color: '#ffffff' } 
+                },
+                y: { 
+                    grid: { color: 'rgba(255, 255, 255, 0.25)' }, 
+                    ticks: { color: '#ffffff' } 
+                }
             },
             plugins: { legend: { position: 'bottom', labels: { color: '#e4e6eb' } } }
         }
     });
 }
 
-// 日別画面用コントロール
 function renderPastDatesSelect() {
     const select = document.getElementById("past-dates-select");
     const currentDate = document.getElementById("target-date").value;
@@ -368,13 +367,14 @@ function renderHistoryAndChart() {
 
     let totalArr = Object.entries(totals).map(([name, score]) => {
         let yen = score * 50; 
-        return `${name}: <b>${score > 0 ? '+' : ''}${score}</b> (${yen >= 0 ? '+' : ''}${yen})`;
+        return `${name}: <b>${score > 0 ? '+' : ''}${score}</b> (${yen >= 0 ? '+' : ''}${yen}円)`;
     });
     document.getElementById("total-text").innerHTML = totalArr.join("<br>") || "データなし";
 
     updateDailyChart(appState.dayRecords.map((_, idx) => `第${idx+1}戦`), cumulativeScores);
 }
 
+// 日別グラフの描画（補助線を白い半透明に修正）
 function updateDailyChart(labels, cumulativeScores) {
     const ctx = document.getElementById('scoreChart').getContext('2d');
     const colorPalette = ['#ff8c00', '#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#1abc9c'];
@@ -397,8 +397,14 @@ function updateDailyChart(labels, cumulativeScores) {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                x: { grid: { color: '#2a2b2e' }, ticks: { color: '#b0b3b8' } },
-                y: { grid: { color: '#2a2b2e' }, ticks: { color: '#b0b3b8' } }
+                x: { 
+                    grid: { color: 'rgba(255, 255, 255, 0.25)' }, 
+                    ticks: { color: '#ffffff' } 
+                },
+                y: { 
+                    grid: { color: 'rgba(255, 255, 255, 0.25)' }, 
+                    ticks: { color: '#ffffff' } 
+                }
             },
             plugins: { legend: { position: 'bottom', labels: { color: '#e4e6eb' } } }
         }
