@@ -1,16 +1,17 @@
-const GAS_URL = "https://script.google.com/macros/s/AKfycbymzundW-n2WlYGyZWAOK19lFLA8-8ssrMu_HG1tk7IXk-OJnH0GYlM0Vcx2QbGjl2q/exec";
+const GAS_URL = "YOUR_GAS_WEB_APP_URL_HERE";
 
 let appState = {
     password: localStorage.getItem('mahjong_pwd') || '',
     cachedMembers: [],
     dayRecords: [],
-    allRecords: [], // 集計用全データ
+    allRecords: [], 
     availableDates: [],
     lastUsedMembers: JSON.parse(localStorage.getItem('mahjong_last_players')) || [],
     editingId: null, 
     dailyChartInstance: null,
-    summaryChartInstance: null,
-    currentTab: 'daily'
+    individualChartInstance: null,
+    currentTab: 'daily',
+    currentSubTab: 'overall'
 };
 
 window.onload = () => {
@@ -23,7 +24,6 @@ window.onload = () => {
     }
 };
 
-// タブ切り替え
 function switchTab(tabName) {
     appState.currentTab = tabName;
     document.getElementById("tab-daily").classList.toggle("active", tabName === 'daily');
@@ -33,6 +33,19 @@ function switchTab(tabName) {
 
     if (tabName === 'summary' && appState.allRecords.length === 0) {
         fetchSummaryData();
+    }
+}
+
+function switchSubTab(subTabName) {
+    appState.currentSubTab = subTabName;
+    document.getElementById("sub-tab-overall").classList.toggle("active", subTabName === 'overall');
+    document.getElementById("sub-tab-individual").classList.toggle("active", subTabName === 'individual');
+    document.getElementById("sub-view-overall").classList.toggle("hidden", subTabName !== 'overall');
+    document.getElementById("sub-view-individual").classList.toggle("hidden", subTabName !== 'individual');
+
+    if (subTabName === 'individual') {
+        populateIndividualMemberSelect();
+        renderIndividualView();
     }
 }
 
@@ -76,7 +89,6 @@ async function fetchData(isAutoLogin = false) {
     }
 }
 
-// 集計用全データ取得
 async function fetchSummaryData() {
     try {
         const res = await fetch(GAS_URL, {
@@ -86,7 +98,6 @@ async function fetchSummaryData() {
         const json = await res.json();
         if (json.status === "success") {
             appState.allRecords = json.allRecords;
-            populateYearFilter();
             renderSummaryView();
         }
     } catch (e) {
@@ -94,29 +105,47 @@ async function fetchSummaryData() {
     }
 }
 
-// 年度フィルターのオプション設定
-function populateYearFilter() {
-    const select = document.getElementById("summary-period-select");
-    const years = new Set(appState.allRecords.map(r => r.year));
-    
-    let html = `<option value="all">全期間通算</option>`;
-    Array.from(years).sort().reverse().forEach(y => {
-        html += `<option value="${y}">${y}年度</option>`;
-    });
-    select.innerHTML = html;
-}
+// フィルター処理を考慮したレコード抽出
+function getFilteredRecords() {
+    const ruleFilter = document.getElementById("filter-rule").value;
+    const periodFilter = document.getElementById("filter-period").value;
 
-// 集計画面の描画（テーブル ＆ 通算グラフ）
-function renderSummaryView() {
-    const period = document.getElementById("summary-period-select").value;
-    let filteredRecords = appState.allRecords;
-    
-    if (period !== 'all') {
-        filteredRecords = appState.allRecords.filter(r => r.year === parseInt(period));
+    let records = [...appState.allRecords];
+
+    // ルール絞り込み
+    if (ruleFilter !== 'all') {
+        records = records.filter(r => r.mode.includes(ruleFilter));
     }
 
-    let stats = {}; 
-    let cumulativeTimeline = {}; 
+    // 期間・直近絞り込み
+    if (periodFilter === 'recent10') {
+        records = records.slice(-10);
+    } else if (periodFilter === 'recent20') {
+        records = records.slice(-20);
+    } else if (periodFilter === 'recent50') {
+        records = records.slice(-50);
+    } else if (periodFilter === 'days30') {
+        const now = new Date();
+        const past30 = new Date(now.setDate(now.getDate() - 30));
+        records = records.filter(r => new Date(r.date) >= past30);
+    }
+
+    return records;
+}
+
+// 集計画面のコントロール
+function renderSummaryView() {
+    if (appState.currentSubTab === 'overall') {
+        renderOverallTable();
+    } else {
+        renderIndividualView();
+    }
+}
+
+// 全体ランキングテーブル描画
+function renderOverallTable() {
+    const filteredRecords = getFilteredRecords();
+    let stats = {};
 
     filteredRecords.forEach(rec => {
         let playersInGame = [];
@@ -129,19 +158,11 @@ function renderSummaryView() {
 
         playersInGame.forEach((p, rankIndex) => {
             if (!stats[p.name]) {
-                stats[p.name] = { games: 0, totalScore: 0, ranks: [0, 0, 0, 0], topCount: 0 };
-                cumulativeTimeline[p.name] = [];
+                stats[p.name] = { games: 0, totalScore: 0, ranks: [0, 0, 0, 0] };
             }
             stats[p.name].games++;
             stats[p.name].totalScore += p.score;
-            stats[p.name].ranks[rankIndex]++;
-            if (rankIndex === 0) stats[p.name].topCount++;
-        });
-
-        Object.keys(stats).forEach(name => {
-            let pInGame = playersInGame.find(p => p.name === name);
-            let prev = cumulativeTimeline[name].length > 0 ? cumulativeTimeline[name][cumulativeTimeline[name].length - 1] : 0;
-            cumulativeTimeline[name].push(prev + (pInGame ? pInGame.score : 0));
+            if (rankIndex < 4) stats[p.name].ranks[rankIndex]++;
         });
     });
 
@@ -149,8 +170,12 @@ function renderSummaryView() {
 
     let tbodyHtml = "";
     sortedStats.forEach(([name, s], idx) => {
-        let winRate = ((s.topCount / s.games) * 100).toFixed(1) + "%";
+        let winRate = ((s.ranks[0] / s.games) * 100).toFixed(1) + "%";
+        let rentaiRate = (((s.ranks[0] + s.ranks[1]) / s.games) * 100).toFixed(1) + "%";
         
+        let lastRankIndex = s.ranks[3] > 0 ? 3 : 2; // サンマなら3位、ヨンマなら4位がラス
+        let lastRate = ((s.ranks[lastRankIndex] / s.games) * 100).toFixed(1) + "%";
+
         let rankSum = s.ranks.reduce((sum, count, rIdx) => sum + count * (rIdx + 1), 0);
         let avgRank = (rankSum / s.games).toFixed(2);
         
@@ -163,6 +188,8 @@ function renderSummaryView() {
                 <td><b>${name}</b></td>
                 <td>${s.games}</td>
                 <td>${winRate}</td>
+                <td>${rentaiRate}</td>
+                <td>${lastRate}</td>
                 <td>${avgRank}</td>
                 <td class="${scoreClass}">${s.totalScore > 0 ? '+' : ''}${s.totalScore.toFixed(1)}</td>
                 <td class="${scoreClass}">${yen >= 0 ? '+' : ''}${yen.toLocaleString()}円</td>
@@ -170,48 +197,157 @@ function renderSummaryView() {
         `;
     });
 
-    document.getElementById("summary-table-body").innerHTML = tbodyHtml || `<tr><td colspan="7" class="empty-text">データなし</td></tr>`;
-
-    updateSummaryChart(filteredRecords.map((_, idx) => `第${idx+1}局`), cumulativeTimeline);
+    document.getElementById("summary-table-body").innerHTML = tbodyHtml || `<tr><td colspan="9" class="empty-text">該当するデータがありません</td></tr>`;
 }
 
-// 通算グラフの描画（補助線を白い半透明に修正）
-function updateSummaryChart(labels, cumulativeTimeline) {
-    const ctx = document.getElementById('summaryChart').getContext('2d');
-    const colorPalette = ['#ff8c00', '#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#1abc9c', '#f1c40f'];
+// 個別メンバープルダウン初期化
+function populateIndividualMemberSelect() {
+    const select = document.getElementById("individual-member-select");
+    const currentVal = select.value;
     
-    let datasets = Object.keys(cumulativeTimeline).map((name, idx) => ({
-        label: name,
-        data: cumulativeTimeline[name],
-        borderColor: colorPalette[idx % colorPalette.length],
-        backgroundColor: colorPalette[idx % colorPalette.length],
-        borderWidth: 2,
-        tension: 0.1
-    }));
+    let allPlayerNames = new Set();
+    appState.allRecords.forEach(rec => {
+        for (let i = 0; i < rec.data.length; i += 2) {
+            if (rec.data[i]) allPlayerNames.add(rec.data[i]);
+        }
+    });
 
-    if (appState.summaryChartInstance) appState.summaryChartInstance.destroy();
+    let html = `<option value="">選択してください...</option>`;
+    Array.from(allPlayerNames).sort().forEach(name => {
+        let selected = name === currentVal ? 'selected' : '';
+        html += `<option value="${name}" ${selected}>${name}</option>`;
+    });
+    select.innerHTML = html;
+}
 
-    appState.summaryChartInstance = new Chart(ctx, {
+// 個別戦績画面の描画
+function renderIndividualView() {
+    const selectedName = document.getElementById("individual-member-select").value;
+    const content = document.getElementById("individual-content");
+
+    if (!selectedName) {
+        content.classList.add("hidden");
+        return;
+    }
+    content.classList.remove("hidden");
+
+    const filteredRecords = getFilteredRecords();
+    let personalGames = [];
+    let ranks = [0, 0, 0, 0];
+    let totalScore = 0;
+
+    filteredRecords.forEach(rec => {
+        let playersInGame = [];
+        for (let i = 0; i < rec.data.length; i += 2) {
+            if (rec.data[i]) {
+                playersInGame.push({ name: rec.data[i], score: parseFloat(rec.data[i+1]) || 0 });
+            }
+        }
+        playersInGame.sort((a, b) => b.score - a.score);
+
+        let pIdx = playersInGame.findIndex(p => p.name === selectedName);
+        if (pIdx !== -1) {
+            let p = playersInGame[pIdx];
+            totalScore += p.score;
+            if (pIdx < 4) ranks[pIdx]++;
+            personalGames.push({
+                date: rec.date,
+                score: p.score,
+                rank: pIdx + 1
+            });
+        }
+    });
+
+    const gameCount = personalGames.length;
+    if (gameCount === 0) {
+        document.getElementById("indiv-name-title").textContent = `${selectedName} の対局データはありません`;
+        document.getElementById("indiv-games").textContent = "0";
+        document.getElementById("indiv-score").textContent = "0";
+        document.getElementById("indiv-yen").textContent = "0円";
+        document.getElementById("indiv-avgrank").textContent = "-";
+        document.getElementById("indiv-winrate").textContent = "-";
+        document.getElementById("indiv-rentai").textContent = "-";
+        document.getElementById("rank-bar-container").innerHTML = `<span class="empty-text">データなし</span>`;
+        updateIndividualChart([], []);
+        return;
+    }
+
+    // スタッツ設定
+    document.getElementById("indiv-name-title").textContent = `${selectedName} の通算成績`;
+    document.getElementById("indiv-games").textContent = gameCount;
+    document.getElementById("indiv-score").textContent = (totalScore > 0 ? '+' : '') + totalScore.toFixed(1);
+    document.getElementById("indiv-score").className = "stat-val " + (totalScore >= 0 ? 'pos' : 'neg');
+    
+    let yen = totalScore * 50;
+    document.getElementById("indiv-yen").textContent = (yen >= 0 ? '+' : '') + yen.toLocaleString() + "円";
+    document.getElementById("indiv-yen").className = "stat-val " + (yen >= 0 ? 'pos' : 'neg');
+
+    let winRate = ((ranks[0] / gameCount) * 100).toFixed(1) + "%";
+    let rentaiRate = (((ranks[0] + ranks[1]) / gameCount) * 100).toFixed(1) + "%";
+    let rankSum = ranks.reduce((sum, count, rIdx) => sum + count * (rIdx + 1), 0);
+    let avgRank = (rankSum / gameCount).toFixed(2);
+
+    document.getElementById("indiv-winrate").textContent = winRate;
+    document.getElementById("indiv-rentai").textContent = rentaiRate;
+    document.getElementById("indiv-avgrank").textContent = avgRank;
+
+    // 着順ビジュアルバーの作成
+    let rankBarHtml = "";
+    const bgClasses = ['bg-1st', 'bg-2nd', 'bg-3rd', 'bg-4th'];
+    ranks.forEach((count, idx) => {
+        if (count > 0) {
+            let pct = ((count / gameCount) * 100).toFixed(1);
+            rankBarHtml += `<div class="rank-segment ${bgClasses[idx]}" style="width: ${pct}%;" title="${idx+1}位: ${count}回">${idx+1}着:${count}</div>`;
+        }
+    });
+    document.getElementById("rank-bar-container").innerHTML = rankBarHtml;
+
+    // 個人推移グラフ用累計データ作成（その人の第1戦〜第N戦）
+    let cum = 0;
+    let chartLabels = [];
+    let chartData = [];
+    personalGames.forEach((g, idx) => {
+        cum += g.score;
+        chartLabels.push(`第${idx+1}戦`);
+        chartData.push(cum);
+    });
+
+    updateIndividualChart(chartLabels, chartData, selectedName);
+}
+
+// 個人推移グラフ描画
+function updateIndividualChart(labels, data, name) {
+    const ctx = document.getElementById('individualChart').getContext('2d');
+    
+    if (appState.individualChartInstance) appState.individualChartInstance.destroy();
+
+    appState.individualChartInstance = new Chart(ctx, {
         type: 'line',
-        data: { labels: labels, datasets: datasets },
+        data: {
+            labels: labels,
+            datasets: [{
+                label: `${name} の累計ポイント`,
+                data: data,
+                borderColor: '#ff8c00',
+                backgroundColor: 'rgba(255, 140, 0, 0.2)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.2
+            }]
+        },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                x: { 
-                    grid: { color: 'rgba(255, 255, 255, 0.25)' }, 
-                    ticks: { color: '#ffffff' } 
-                },
-                y: { 
-                    grid: { color: 'rgba(255, 255, 255, 0.25)' }, 
-                    ticks: { color: '#ffffff' } 
-                }
+                x: { grid: { color: 'rgba(255, 255, 255, 0.25)' }, ticks: { color: '#ffffff' } },
+                y: { grid: { color: 'rgba(255, 255, 255, 0.25)' }, ticks: { color: '#ffffff' } }
             },
             plugins: { legend: { position: 'bottom', labels: { color: '#e4e6eb' } } }
         }
     });
 }
 
+// 日別画面コントロール
 function renderPastDatesSelect() {
     const select = document.getElementById("past-dates-select");
     const currentDate = document.getElementById("target-date").value;
@@ -374,7 +510,6 @@ function renderHistoryAndChart() {
     updateDailyChart(appState.dayRecords.map((_, idx) => `第${idx+1}戦`), cumulativeScores);
 }
 
-// 日別グラフの描画（補助線を白い半透明に修正）
 function updateDailyChart(labels, cumulativeScores) {
     const ctx = document.getElementById('scoreChart').getContext('2d');
     const colorPalette = ['#ff8c00', '#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#1abc9c'];
@@ -397,14 +532,8 @@ function updateDailyChart(labels, cumulativeScores) {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                x: { 
-                    grid: { color: 'rgba(255, 255, 255, 0.25)' }, 
-                    ticks: { color: '#ffffff' } 
-                },
-                y: { 
-                    grid: { color: 'rgba(255, 255, 255, 0.25)' }, 
-                    ticks: { color: '#ffffff' } 
-                }
+                x: { grid: { color: 'rgba(255, 255, 255, 0.25)' }, ticks: { color: '#ffffff' } },
+                y: { grid: { color: 'rgba(255, 255, 255, 0.25)' }, ticks: { color: '#ffffff' } }
             },
             plugins: { legend: { position: 'bottom', labels: { color: '#e4e6eb' } } }
         }

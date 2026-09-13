@@ -20,7 +20,7 @@
 
 <!-- メイン画面 -->
 <div class="container hidden" id="main-screen">
-    <!-- ナビゲーションタブ -->
+    <!-- メインナビゲーション -->
     <div class="nav-tabs">
         <button class="tab-btn active" id="tab-daily" onclick="switchTab('daily')">📝 日別記録</button>
         <button class="tab-btn" id="tab-summary" onclick="switchTab('summary')">🏆 通算集計</button>
@@ -81,36 +81,91 @@
 
     <!-- 2. 通算集計ビュー -->
     <div id="view-summary" class="hidden">
-        <div class="section">
-            <label>集計期間を選択</label>
-            <select id="summary-period-select" onchange="renderSummaryView()">
-                <option value="all">全期間通算</option>
-            </select>
+        <!-- フィルターセクション -->
+        <div class="filter-box">
+            <div class="filter-row">
+                <div>
+                    <label>ルール絞り込み</label>
+                    <select id="filter-rule" onchange="renderSummaryView()">
+                        <option value="all">全ルール (サンマ+ヨンマ)</option>
+                        <option value="4">4人打ちのみ</option>
+                        <option value="3">3人打ちのみ</option>
+                    </select>
+                </div>
+                <div>
+                    <label>期間・直近絞り込み</label>
+                    <select id="filter-period" onchange="renderSummaryView()">
+                        <option value="all">全期間</option>
+                        <option value="recent10">直近10戦</option>
+                        <option value="recent20">直近20戦</option>
+                        <option value="recent50">直近50戦</option>
+                        <option value="days30">過去30日</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
-        <h3>🏆 メンバー別通算成績</h3>
-        <div class="table-scroll">
-            <table class="summary-table">
-                <thead>
-                    <tr>
-                        <th>順位</th>
-                        <th>名前</th>
-                        <th>対局</th>
-                        <th>勝率</th>
-                        <th>平均着順</th>
-                        <th>通算P</th>
-                        <th>収支</th>
-                    </tr>
-                </thead>
-                <tbody id="summary-table-body">
-                    <tr><td colspan="7" class="empty-text">読み込み中...</td></tr>
-                </tbody>
-            </table>
+        <!-- 集計モード切り替えサブタブ -->
+        <div class="sub-tabs">
+            <button class="sub-tab-btn active" id="sub-tab-overall" onclick="switchSubTab('overall')">🌐 全体ランキング</button>
+            <button class="sub-tab-btn" id="sub-tab-individual" onclick="switchSubTab('individual')">👤 個別戦績</button>
         </div>
 
-        <h3 style="margin-top: 24px;">📉 通算ポイント推移グラフ</h3>
-        <div class="chart-container">
-            <canvas id="summaryChart"></canvas>
+        <!-- 2-A. 全体ランキング -->
+        <div id="sub-view-overall">
+            <h3>🏆 メンバー別通算成績</h3>
+            <div class="table-scroll">
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>順位</th>
+                            <th>名前</th>
+                            <th>対局</th>
+                            <th>勝率</th>
+                            <th>連対率</th>
+                            <th>ラス率</th>
+                            <th>平均着順</th>
+                            <th>通算P</th>
+                            <th>収支(円)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summary-table-body">
+                        <tr><td colspan="9" class="empty-text">読み込み中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 2-B. 個別戦績 -->
+        <div id="sub-view-individual" class="hidden">
+            <div class="section">
+                <label>メンバーを選択</label>
+                <select id="individual-member-select" onchange="renderIndividualView()">
+                    <option value="">選択してください...</option>
+                </select>
+            </div>
+
+            <div id="individual-content" class="hidden">
+                <div class="personal-card">
+                    <h4 id="indiv-name-title">梁瀬 の通算成績</h4>
+                    <div class="stat-grid">
+                        <div class="stat-item"><span class="stat-label">対局数</span><span id="indiv-games" class="stat-val">0</span></div>
+                        <div class="stat-item"><span class="stat-label">通算スコア</span><span id="indiv-score" class="stat-val">0</span></div>
+                        <div class="stat-item"><span class="stat-label">通算収支</span><span id="indiv-yen" class="stat-val">0円</span></div>
+                        <div class="stat-item"><span class="stat-label">平均着順</span><span id="indiv-avgrank" class="stat-val">0.0</span></div>
+                        <div class="stat-item"><span class="stat-label">勝率 (トップ)</span><span id="indiv-winrate" class="stat-val">0%</span></div>
+                        <div class="stat-item"><span class="stat-label">連対率 (1-2位)</span><span id="indiv-rentai" class="stat-val">0%</span></div>
+                    </div>
+
+                    <label style="margin-top: 14px; margin-bottom: 6px;">着順内訳</label>
+                    <div id="rank-bar-container" class="rank-bar-container"></div>
+                </div>
+
+                <h3>📈 個人スコア推移（その人の第1戦〜）</h3>
+                <div class="chart-container">
+                    <canvas id="individualChart"></canvas>
+                </div>
+            </div>
         </div>
     </div>
 
